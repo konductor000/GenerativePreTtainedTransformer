@@ -1,15 +1,14 @@
 import torch
 import torch.nn.functional as F
 import nltk
-from nltk.translate import rouge_score
 
 
 class TestModel:
     def __init__(self):
         self.metrics = {
-            'perplexity': [], 
-            'bleu': [], 
-            'rouge': [], 
+            'perplexity': [],
+            'bleu': [],
+            'rouge': [],
             'loss': [],
         }
         self.epochs = []
@@ -32,7 +31,7 @@ class TestModel:
         perplexity = torch.exp(average_cross_entropy)
 
         return perplexity.item()
-    
+
     def compute_bleu(predicted_sentences, true_sentences, n=4):
         bleu_scores = []
 
@@ -43,19 +42,7 @@ class TestModel:
             bleu_scores.append(bleu_score)
 
         return sum(bleu_scores) / len(bleu_scores)
-    
-    def compute_rouge(predicted_sentences, true_sentences):
-        rouge_scores = []
 
-        for pred_sent, true_sent in zip(predicted_sentences, true_sentences):
-            rouge_1_score = rouge_score.rouge_n([pred_sent], [true_sent], 1)
-            rouge_2_score = rouge_score.rouge_n([pred_sent], [true_sent], 2)
-            rouge_l_score = rouge_score.rouge_l([pred_sent], [true_sent])
-            rouge_scores.append((rouge_1_score, rouge_2_score, rouge_l_score))
-
-        rouge_scores = [sum(score) / len(score) for score in rouge_scores]
-        
-        return rouge_scores
 
     def compute_metrics(self, predicted, true_labels):
         pass
@@ -74,4 +61,3 @@ class TestModel:
 
             model_outputs = model(input_ids)
 
-            
