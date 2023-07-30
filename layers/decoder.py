@@ -4,18 +4,17 @@ from .feed_forward import FeedForward
 
 
 class DecoderLayer(torch.nn.Module):
-    def __init__(self, embedding_size, number_of_heads, 
-            feed_forward_dimension, dropout_rate):
+    def __init__(self, embedding_size, number_of_heads,
+            extention_factor, additional_feed_forward_layers, dropout_rate):
         super().__init__()
 
         self.embedding_size = embedding_size
         self.number_of_heads = number_of_heads
-        self.feed_forward_dimension = feed_forward_dimension
         self.dropout_rate = dropout_rate
 
-        self.multi_headed_self_attention = MaskedMultiHeadedSelfAttention(embedding_size, 
+        self.multi_headed_self_attention = MaskedMultiHeadedSelfAttention(embedding_size,
                                                                           number_of_heads)
-        self.feed_forward = FeedForward(embedding_size, feed_forward_dimension)
+        self.feed_forward = FeedForward(embedding_size, extention_factor, additional_feed_forward_layers)
         self.dropout = torch.nn.Dropout(dropout_rate)
 
         self.layer_normalization_1 = torch.nn.LayerNorm(embedding_size)
@@ -23,13 +22,9 @@ class DecoderLayer(torch.nn.Module):
 
     def forward(self, x, mask):
         normalized_x = self.layer_normalization_1(x)
-
         attention_output = self.multi_headed_self_attention(normalized_x, mask)
-
         residual_output = x + attention_output
-
         normalized_residual_output = self.layer_normalization_2(residual_output)
-
         feed_forward_output = self.feed_forward(normalized_residual_output)
 
         if self.training:
@@ -40,11 +35,11 @@ class DecoderLayer(torch.nn.Module):
 
 class DecoderStack(torch.nn.Module):
     def __init__(self, embedding_size, number_of_layers, number_of_heads,
-            extention_factor, dropout_rate, max_sequence_length):
+            extention_factor, additional_feed_forward_layers, dropout_rate, max_sequence_length):
         super().__init__()
 
         self.encoder_layers = torch.nn.ModuleList(
-            [DecoderLayer(embedding_size, number_of_heads, extention_factor, dropout_rate)
+            [DecoderLayer(embedding_size, number_of_heads, extention_factor, additional_feed_forward_layers, dropout_rate)
               for _ in range(number_of_layers)])
 
     def forward(self, x, mask):
