@@ -1,43 +1,64 @@
 import torch
-import torch.nn as nn
-from tqdm import tqdm
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
-import matplotlib.pyplot as plt
+import torch.nn.functional as F
+import nltk
+from nltk.translate import rouge_score
 
 
 class TestModel:
     def __init__(self):
         self.metrics = {
-            'precision': [], 
-            'recall': [], 
-            'f1': [], 
-            'accuracy': [], 
-            'loss': []
+            'perplexity': [], 
+            'bleu': [], 
+            'rouge': [], 
+            'loss': [],
         }
         self.epochs = []
-        self.fig = None
-        self.ax = None
 
-    def __call__(self, model, test_dataloader, num_classes):
-        return self.test_model(model, test_dataloader, num_classes)
+    def calculate_perplexity(predicted_logits, targets):
+        # Step 1: Apply Softmax
+        predicted_probs = F.softmax(predicted_logits, dim=-1)
+
+        # Step 2: Compute Cross Entropy
+        batch_size, sequence_length, vocab_size = predicted_probs.size()
+        targets_flat = targets.view(-1)  # Flatten targets
+        predicted_probs_flat = predicted_probs.view(batch_size * sequence_length, vocab_size)
+
+        cross_entropy_loss = F.cross_entropy(predicted_probs_flat, targets_flat, reduction='sum')
+
+        # Step 3: Average Cross Entropy
+        average_cross_entropy = cross_entropy_loss / (batch_size * sequence_length)
+
+        # Step 4: Compute Perplexity
+        perplexity = torch.exp(average_cross_entropy)
+
+        return perplexity.item()
+    
+    def compute_bleu(predicted_sentences, true_sentences, n=4):
+        bleu_scores = []
+
+        for pred_sent, true_sent in zip(predicted_sentences, true_sentences):
+            pred_tokens = nltk.word_tokenize(pred_sent.lower())
+            true_tokens = [nltk.word_tokenize(sent.lower()) for sent in true_sent]
+            bleu_score = nltk.translate.bleu_score.sentence_bleu([true_tokens], pred_tokens, weights=[1/n] * n)
+            bleu_scores.append(bleu_score)
+
+        return sum(bleu_scores) / len(bleu_scores)
+    
+    def compute_rouge(predicted_sentences, true_sentences):
+        rouge_scores = []
+
+        for pred_sent, true_sent in zip(predicted_sentences, true_sentences):
+            rouge_1_score = rouge_score.rouge_n([pred_sent], [true_sent], 1)
+            rouge_2_score = rouge_score.rouge_n([pred_sent], [true_sent], 2)
+            rouge_l_score = rouge_score.rouge_l([pred_sent], [true_sent])
+            rouge_scores.append((rouge_1_score, rouge_2_score, rouge_l_score))
+
+        rouge_scores = [sum(score) / len(score) for score in rouge_scores]
         
-    def compute_metrics(self, predicted, true_labels, num_classes):
-        # Perform one-hot encoding
-        predicted_labels = predicted.argmax(dim=1).numpy()
+        return rouge_scores
 
-        # Compute precision, recall, and F1 score
-        precision = precision_score(true_labels, predicted_labels, average='macro', zero_division=0)
-        recall = recall_score(true_labels, predicted_labels, average='macro', zero_division=0)
-        f1 = f1_score(true_labels, predicted_labels, average='macro', zero_division=0)
-
-        # Compute accuracy
-        accuracy = accuracy_score(true_labels, predicted_labels)
-
-        # Compute loss
-        loss_fn = nn.CrossEntropyLoss()
-        loss = loss_fn(predicted, true_labels)
-
-        return precision, recall, f1, accuracy, loss.item()
+    def compute_metrics(self, predicted, true_labels):
+        pass
 
     def test_model(self, model, test_dataloader, num_classes):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -53,57 +74,4 @@ class TestModel:
 
             model_outputs = model(input_ids)
 
-            # Collect predicted and true labels
-            all_predicted.append(model_outputs)
-            all_true_labels.append(labels)
-
-        # Concatenate and flatten the predicted and true labels
-        all_predicted = torch.cat(all_predicted, dim=0)
-        all_true_labels = torch.cat(all_true_labels, dim=0)
-
-        # Call compute_metrics once
-        precision, recall, f1, accuracy, loss = self.compute_metrics(all_predicted, all_true_labels, num_classes)
-
-        metrics_data = {
-            'precision': precision,
-            'recall': recall,
-            'f1': f1,
-            'accuracy': accuracy,
-            'loss': loss
-        }
-
-        return metrics_data
-
-        
-        #self.add_metrics_data(metrics_data)
-
-        #self.visualize_metrics()
-    
-    def visualize_metrics(self):
-        # Get the current axes
-        ax = plt.gca()
-        
-        # Clear the previous plot
-        ax.clear()
-        
-        # Plot each metric
-        for metric_name, metric_values in self.metrics.items():
-            ax.plot(self.epochs, metric_values, label=metric_name)
-        
-        # Add labels, title, and legend
-        ax.set_xlabel('Epochs')
-        ax.set_ylabel('Metrics')
-        ax.set_title('Model Evaluation Metrics')
-        ax.legend()
-        
-        # Display the updated plot
-        plt.show()
-    
-    def add_metrics_data(self, metrics_data):
-        # Update metrics and epochs data
-        for metric_name, metric_value in metrics_data.items():
-            if metric_name not in self.metrics:
-                self.metrics[metric_name] = []
-            self.metrics[metric_name].append(metric_value)
-        
-        self.epochs.append(len(self.epochs) + 1)
+            
