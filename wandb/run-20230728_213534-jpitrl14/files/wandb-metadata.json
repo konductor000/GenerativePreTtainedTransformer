@@ -1,0 +1,49 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.9.2",
+    "heartbeatAt": "2023-07-28T18:35:34.822536",
+    "startedAt": "2023-07-28T18:35:34.035360",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "train.ipynb",
+    "root": "C:/Users/skoro/VS_projects/Transformer",
+    "git": {
+        "remote": "https://github.com/konductor000/GenerativePretrainedTransformer",
+        "commit": "ef2f778f908009ea3b9eb1ba07c114c97105d635"
+    },
+    "email": "skorodumov000@mail.ru",
+    "host": "DESKTOP-QTF2H34",
+    "username": "skoro",
+    "executable": "c:\\users\\skoro\\vs_projects\\virtualenvs\\torchvenv\\scripts\\python.exe",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 3593.0,
+        "min": 0.0,
+        "max": 3593.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3593.0,
+            "min": 0.0,
+            "max": 3593.0
+        }
+    ],
+    "disk": {
+        "total": 212.66503524780273,
+        "used": 183.2710838317871
+    },
+    "gpu": "NVIDIA GeForce GTX 1070 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1070 Ti",
+            "memory_total": 8589934592
+        }
+    ],
+    "memory": {
+        "total": 15.932605743408203
+    }
+}
