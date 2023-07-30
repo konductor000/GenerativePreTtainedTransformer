@@ -1,1 +1,9 @@
 venv/
+layers/__pycache__/
+dataset/__pycache__/
+.ipynb_checkpoints/train-checkpoint.ipynb
+wandb/
+model/__pycache__/
+test_model/__pycache__/
+cf.py
+
