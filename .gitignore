@@ -1,9 +1,5 @@
 venv/
-layers/__pycache__/
-dataset/__pycache__/
-.ipynb_checkpoints/train-checkpoint.ipynb
+**/__pycache__/
+**.pyc
+.ipynb_checkpoints
 wandb/
-model/__pycache__/
-test_model/__pycache__/
-cf.py
-
