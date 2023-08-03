@@ -1,63 +1,79 @@
 import torch
-import torch.nn.functional as F
-import nltk
+import evaluate
 
 
 class TestModel:
-    def __init__(self):
+    def __init__(self, tokenizer, model):
+        self.tokenizer = tokenizer
+        self.model = model
         self.metrics = {
-            'perplexity': [],
-            'bleu': [],
-            'rouge': [],
-            'loss': [],
+            'loss': 0,
+            'bleu': 0,
+            #'bert_f1': 0,
+            'rouge1': 0,
+            "rouge2": 0,
+            "rougeL": 0
         }
-        self.epochs = []
 
-    def calculate_perplexity(predicted_logits, targets):
-        # Step 1: Apply Softmax
-        predicted_probs = F.softmax(predicted_logits, dim=-1)
-
-        # Step 2: Compute Cross Entropy
-        batch_size, sequence_length, vocab_size = predicted_probs.size()
-        targets_flat = targets.view(-1)  # Flatten targets
-        predicted_probs_flat = predicted_probs.view(batch_size * sequence_length, vocab_size)
-
-        cross_entropy_loss = F.cross_entropy(predicted_probs_flat, targets_flat, reduction='sum')
-
-        # Step 3: Average Cross Entropy
-        average_cross_entropy = cross_entropy_loss / (batch_size * sequence_length)
-
-        # Step 4: Compute Perplexity
-        perplexity = torch.exp(average_cross_entropy)
-
-        return perplexity.item()
-
-    def compute_bleu(predicted_sentences, true_sentences, n=4):
-        bleu_scores = []
-
-        for pred_sent, true_sent in zip(predicted_sentences, true_sentences):
-            pred_tokens = nltk.word_tokenize(pred_sent.lower())
-            true_tokens = [nltk.word_tokenize(sent.lower()) for sent in true_sent]
-            bleu_score = nltk.translate.bleu_score.sentence_bleu([true_tokens], pred_tokens, weights=[1/n] * n)
-            bleu_scores.append(bleu_score)
-
-        return sum(bleu_scores) / len(bleu_scores)
-
-
-    def compute_metrics(self, predicted, true_labels):
-        pass
-
-    def test_model(self, model, test_dataloader, num_classes):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.loss_function = torch.nn.CrossEntropyLoss().to(device)
+        self.bleu_metric = evaluate.load("bleu")
+        #self.bertscore_metric = evaluate.load("bertscore")
+        self.rouge_metric = evaluate.load("rouge")
 
-        all_predicted = []
-        all_true_labels = []
+    def convert_to_text_sequences(self, token_ids, attention_mask):
+        batch_size, sequence_length = token_ids.size()
+        text_sequences = []
 
+        for i in range(batch_size):
+            tokens = token_ids[i].tolist()
+            tokens = [tokens[token_id] for token_id in range(len(tokens)) \
+                       if attention_mask[i][token_id]]
+            tokens = self.tokenizer.convert_ids_to_tokens(tokens)
+            text = self.tokenizer.convert_tokens_to_string(tokens)
+            text_sequences.append(text)
+
+        return text_sequences
+
+    def compute_metrics(self, predicted, true_labels, attention_mask):
+        batch_size = len(predicted)
+        predicted_tokens = torch.argmax(predicted, dim=-1)
+        predicted_text = self.convert_to_text_sequences(predicted_tokens, attention_mask)
+        true_text = self.convert_to_text_sequences(true_labels, attention_mask)
+
+        #bert_score = self.bertscore_metric.compute(predictions=predicted_text, references=true_text, lang='en')
+        rouge = self.rouge_metric.compute(predictions=predicted_text, references=true_text)
+
+        loss = self.loss_function(predicted.transpose(1, 2), true_labels)
+        bleu = self.bleu_metric.compute(predictions=predicted_text, references=true_text)['bleu']
+        #bert_f1 = sum(bert_score['f1']) / batch_size
+        rouge1 = rouge['rouge1']
+        rouge2 = rouge['rouge2']
+        rougeL = rouge['rougeL']
+
+        self.metrics['loss'] += float(loss)
+        self.metrics['bleu'] += bleu
+        #self.metrics['bert_f1'] += bert_f1
+        self.metrics['rouge1'] += rouge1
+        self.metrics['rouge2'] += rouge2
+        self.metrics['rougeL'] += rougeL
+
+    def test_model(self, model, test_dataloader):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.eval()
+
+        for metric in self.metrics:
+            self.metrics[metric] = 0
 
         for batch in test_dataloader:
             input_ids = batch['input_ids'].to(device)
-            labels = batch['label'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
 
-            model_outputs = model(input_ids)
+            model_output, target = model(input_ids, attention_mask)
 
+            self.compute_metrics(model_output, target, attention_mask)
+
+        for metric in self.metrics:
+            self.metrics[metric] /= len(test_dataloader)
+
+        return self.metrics

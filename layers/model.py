@@ -76,7 +76,10 @@ class AutoregressiveWrapper(torch.nn.Module):
 
         return probabilities
 
+    def count_parameters(self):
+        num_parameters = sum(p.numel() for p in self.model.parameters())
+        num_trainable_parameters = sum(param.numel() for param in self.model.parameters() if param.requires_grad)
+        memory_allocated = num_parameters * 4
+        memory_allocated /= (1024 ** 3) # total memory used in GB
 
-if __name__ == '__main__':
-    model = Transformer(number_of_tokens=10)
-    wrapper = AutoregressiveWrapper(model, max_sequence_length=512)
+        return num_parameters, num_trainable_parameters, memory_allocated

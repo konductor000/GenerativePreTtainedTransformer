@@ -6,7 +6,8 @@ from torch.utils.data import DataLoader, random_split
 def create_data_loader(batch_size, max_sequence_size,
                        train_size=36000, test_size=2000):
     # Load the dataset from Hugging Face's datasets library
-    dataset = load_dataset('wikitext', 'wikitext-2-raw-v1')
+    dataset = load_dataset('wikitext', 'wikitext-103-raw-v1')
+
     train_dataset, test_dataset = dataset['train']. \
         select(range(train_size)), dataset['test'].select(range(test_size))
 
