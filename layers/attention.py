@@ -16,16 +16,24 @@ class MaskedSelfAttention(torch.nn.Module):
         key = self.key_layer(x)
         value = self.value_layer(x)
 
+        # Compute the scaled dot-product attention scores
         attention_weights = torch.matmul(query, key.transpose(-2, -1))
+        attention_weights = attention_weights / torch.sqrt(torch.tensor([self.head_size], dtype=attention_weights.dtype, device=attention_weights.device))
 
-        attention_weights = attention_weights / torch.sqrt(torch.tensor([self.head_size])).to(attention_weights.device)
+        causal_mask = torch.tril(torch.ones_like(attention_weights), diagonal=-1)
+        attention_weights = attention_weights.masked_fill(causal_mask == 0, float('-inf'))
 
-        mask = mask.reshape(attention_weights.shape[0], 1, attention_weights.shape[2])
+        # Apply the mask to prevent attending to padded or invalid positions
+        mask = mask.unsqueeze(1)  # Add a dimension to match attention_weights shape
         attention_weights = attention_weights.masked_fill(mask == 0, float('-inf'))
 
+        # Compute the attention probabilities using softmax
         attention_scores = self.softmax(attention_weights)
 
-        return torch.bmm(attention_scores, value)
+        # Apply the attention scores to the value vectors
+        output = torch.matmul(attention_scores, value)
+
+        return output
     
 
 class MaskedMultiHeadedSelfAttention(torch.nn.Module):

@@ -75,6 +75,13 @@ class AutoregressiveWrapper(torch.nn.Module):
         probabilities = torch.softmax(logits, dim=-1)
 
         return probabilities
+    
+    def predict_next(self, x, mask):
+        inp, target = x[:, :-1], x[:, -1]
+        mask = mask[:, :-1]
+        output = self.next_token_probabilities(inp, mask)
+
+        return output, target
 
     def count_parameters(self):
         num_parameters = sum(p.numel() for p in self.model.parameters())
