@@ -13,6 +13,7 @@ class Transformer(torch.nn.Module):
             number_of_heads=4,
             extention_factor=4,
             additional_feed_forward_layers=0,
+            attention_activation="softmax",
             dropout_rate=0.1
     ):
         super().__init__()
@@ -28,6 +29,7 @@ class Transformer(torch.nn.Module):
             number_of_heads=number_of_heads,
             extention_factor=extention_factor,
             additional_feed_forward_layers=additional_feed_forward_layers,
+            attention_activation=attention_activation,
             dropout_rate=dropout_rate,
             max_sequence_length=max_sequence_length
         )
