@@ -3,4 +3,4 @@ venv/
 **.pyc
 .ipynb_checkpoints
 wandb/
-save_models/*
+save_models/**
