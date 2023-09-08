@@ -14,24 +14,25 @@ create generator with dataloaders with books
 """
 
 
-def split_book_into_parts(book_text, max_sequence_length):
-    sentences = re.split(r'(?<=[.!?]) +', book_text)
+def split_book_into_parts(books, max_sequence_length):
     parts = []
-    current_part = []
-    
-    for sentence in sentences:
-        words = sentence.split()
-        if len(words) >= max_sequence_length:
-            parts.append(" ".join(list(words)))
-            continue
-        if len(current_part) + len(words) <= max_sequence_length:
-            current_part += list(words)
-        else:
-            parts.append(" ".join(current_part))
-            current_part = list(words)
+    for book_text in books:
+        sentences = re.split(r'(?<=[.!?]) +', book_text)
+        current_part = []
 
-    if len(current_part):
-        parts.append(" ".join(current_part))
+        for sentence in sentences:
+            words = sentence.split()
+            if len(words) >= max_sequence_length:
+                parts.append(" ".join(list(words)))
+                continue
+            if len(current_part) + len(words) <= max_sequence_length:
+                current_part += list(words)
+            else:
+                parts.append(" ".join(current_part))
+                current_part = list(words)
+
+        if len(current_part):
+            parts.append(" ".join(current_part))
     
     return parts
 
@@ -60,9 +61,13 @@ class BookGenerator:
         self.dataset = iter(datasets.load_dataset("togethercomputer/RedPajama-Data-1T",
             "book", split="train", streaming=True))
 
-    def next_book(self):
-        book = next(self.dataset)
-        book_parts = split_book_into_parts(book['text'], self.max_sequence_length)
+    def next_book(self, num_books):
+        books = []
+        for i in range(num_books):
+            book = next(self.dataset)['text']
+            books.append(book)
+
+        book_parts = split_book_into_parts(books, self.max_sequence_length)
         book_dataset = BookDataset(book_parts, self.tokenizer, self.max_sequence_length)
         dataloader = DataLoader(book_dataset, batch_size=self.batch_size)
 
@@ -74,7 +79,7 @@ class BookGenerator:
         all_samples = []
 
         for i in range(num_books):
-            dataloader = self.next_book()
+            dataloader = self.next_book(1)
             number = random.randint(0, len(dataloader)-1)
             for idx, batch in enumerate(dataloader):
                 if idx == number:
