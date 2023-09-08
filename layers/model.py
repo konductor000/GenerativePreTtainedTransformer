@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from .embeddings import TokenEmbedding, PositionalEncoding
 from .decoder import DecoderStack
+from random import randint
 
 class Transformer(torch.nn.Module):
     def __init__(
@@ -13,8 +14,8 @@ class Transformer(torch.nn.Module):
             number_of_heads=4,
             extention_factor=4,
             additional_feed_forward_layers=0,
-            attention_activation="softmax",
-            dropout_rate=0.1
+            dropout_rate=0.1,
+            use_flash_att=False,
     ):
         super().__init__()
 
@@ -29,9 +30,8 @@ class Transformer(torch.nn.Module):
             number_of_heads=number_of_heads,
             extention_factor=extention_factor,
             additional_feed_forward_layers=additional_feed_forward_layers,
-            attention_activation=attention_activation,
             dropout_rate=dropout_rate,
-            max_sequence_length=max_sequence_length
+            use_flash_att=use_flash_att,
         )
 
         self.lm_head = LMHead(embedding_size, number_of_tokens)
@@ -67,8 +67,8 @@ class AutoregressiveWrapper(torch.nn.Module):
     def forward(self, x, mask):
         inp, target = x[:, :-1], x[:, 1:]
         mask = mask[:, :-1]
-
         output = self.model(inp, mask)
+
         return output, target
 
     def next_token_probabilities(self, x, mask, temperature=1.0):
@@ -92,3 +92,37 @@ class AutoregressiveWrapper(torch.nn.Module):
         memory_allocated /= (1024 ** 3) # total memory used in GB
 
         return num_parameters, num_trainable_parameters, memory_allocated
+
+    def predict_next(model, input_text, tokenizer, num_predicted_tokens, beam_width):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        input_tokens = tokenizer.encode(input_text, return_tensors="pt")
+        input_tokens = input_tokens[:, :-1].to(device)
+        model.eval()
+
+        # Initial beam consists of just the input sequence
+        beams = [(input_tokens, 0.0)]
+
+        for _ in range(num_predicted_tokens):
+            new_beams = []
+
+            for tokens, score in beams:
+                mask = torch.ones_like(tokens)
+
+                with torch.no_grad():
+                    probabilities = model.next_token_probabilities(tokens, mask)
+                
+                # Get top `beam_width` candidates for each beam
+                top_scores, top_indices = probabilities.topk(beam_width, dim=-1)
+                
+                for i in range(beam_width):
+                    new_tokens = torch.cat((tokens, top_indices[:, i].unsqueeze(0)), dim=1)
+                    new_score = score + top_scores[0, i].item()
+                    new_beams.append((new_tokens, new_score))
+                
+            # Select the top `beam_width` beams
+            new_beams.sort(key=lambda x: x[1], reverse=True)
+            beams = new_beams[:beam_width]
+            
+        # Choose the best beam
+        best_tokens, _ = max(beams, key=lambda x: x[1])
+        return tokenizer.decode(best_tokens[0])

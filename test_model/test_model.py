@@ -1,5 +1,6 @@
 import torch
 import evaluate
+import spacy
 
 
 class TestModel:
@@ -9,16 +10,15 @@ class TestModel:
         self.metrics = {
             'loss': 0,
             'bleu': 0,
-            #'bert_f1': 0,
             'rouge1': 0,
             "rouge2": 0,
             "rougeL": 0
         }
 
+        self.nlp = spacy.load("en_core_web_md")
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.loss_function = torch.nn.CrossEntropyLoss().to(device)
         self.bleu_metric = evaluate.load("bleu")
-        #self.bertscore_metric = evaluate.load("bertscore")
         self.rouge_metric = evaluate.load("rouge")
 
     def convert_to_text_sequences(self, token_ids, attention_mask):
@@ -41,26 +41,22 @@ class TestModel:
         predicted_text = self.convert_to_text_sequences(predicted_tokens, attention_mask)
         true_text = self.convert_to_text_sequences(true_labels, attention_mask)
 
-        #bert_score = self.bertscore_metric.compute(predictions=predicted_text, references=true_text, lang='en')
         rouge = self.rouge_metric.compute(predictions=predicted_text, references=true_text)
 
         loss = self.loss_function(predicted.transpose(1, 2), true_labels)
         bleu = self.bleu_metric.compute(predictions=predicted_text, references=true_text)['bleu']
-        #bert_f1 = sum(bert_score['f1']) / batch_size
         rouge1 = rouge['rouge1']
         rouge2 = rouge['rouge2']
         rougeL = rouge['rougeL']
 
         self.metrics['loss'] += float(loss)
         self.metrics['bleu'] += bleu
-        #self.metrics['bert_f1'] += bert_f1
         self.metrics['rouge1'] += rouge1
         self.metrics['rouge2'] += rouge2
         self.metrics['rougeL'] += rougeL
 
     def test_model(self, model, test_dataloader):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model.eval()
 
         for metric in self.metrics:
             self.metrics[metric] = 0
@@ -69,7 +65,8 @@ class TestModel:
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
 
-            model_output, target = model(input_ids, attention_mask)
+            with torch.no_grad():
+                model_output, target = model(input_ids, attention_mask)
 
             self.compute_metrics(model_output, target, attention_mask)
 
@@ -77,3 +74,26 @@ class TestModel:
             self.metrics[metric] /= len(test_dataloader)
 
         return self.metrics
+        
+    def test_simmilarity(self, model, test_dataloader, tokenizer, num_generate=5):
+        simmilarity_accuracy = 0
+        simmilarity_score = 0
+
+        for batch in test_dataloader:
+            text = batch['sentence']
+            answers = batch['answers']
+
+            beam_width = 4
+
+            with torch.no_grad():
+                output = model.predict_next(text, tokenizer, num_generate, beam_width).split()[-num_generate:]
+            output = ' '.join(output)
+            
+            sentence_doc = self.nlp(output)
+            simmilarity_score += max([sentence_doc.similarity(self.nlp(answer)) for answer in answers])
+
+            simmilarity_accuracy += True in [answer in output for answer in answers]
+
+        return simmilarity_accuracy / len(test_dataloader), \
+               simmilarity_score / len(test_dataloader)
+
