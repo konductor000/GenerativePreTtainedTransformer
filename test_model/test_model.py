@@ -15,6 +15,7 @@ class TestModel:
             "rougeL": 0
         }
 
+        spacy.cli.download("en_core_web_md")
         self.nlp = spacy.load("en_core_web_md")
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.loss_function = torch.nn.CrossEntropyLoss().to(device)
