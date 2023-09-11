@@ -1,5 +1,6 @@
 import torch
 from flash_attn import flash_attn_qkvpacked_func, flash_attn_func
+from flash_attn.modules.mha import MHA
 
 
 class MaskedSelfAttention(torch.nn.Module):
@@ -48,9 +49,7 @@ class MaskedMultiHeadedSelfAttention(torch.nn.Module):
         self.use_flash_att = use_flash_att
 
         if use_flash_att:
-            self.query_layer = torch.nn.Linear(embedding_size, embedding_size)
-            self.key_layer = torch.nn.Linear(embedding_size, embedding_size)
-            self.value_layer = torch.nn.Linear(embedding_size, embedding_size)
+            self.flash_attention = MHA(embedding_size, number_of_heads, causal=True, dropout=0.1, use_flash_attn=True, device='cuda')
         else:
             self.self_attentions = torch.nn.ModuleList(
                 [MaskedSelfAttention(embedding_size, self.head_size) for _ in range(number_of_heads)])
@@ -59,11 +58,7 @@ class MaskedMultiHeadedSelfAttention(torch.nn.Module):
 
     def forward(self, x, mask):
         if self.use_flash_att:
-            query = self.query_layer(x).view(x.size(0), x.size(1), self.number_of_heads, self.head_size)
-            key = self.key_layer(x).view(x.size(0), x.size(1), self.number_of_heads, self.head_size)
-            value = self.value_layer(x).view(x.size(0), x.size(1), self.number_of_heads, self.head_size)
-            output = flash_attn_func(query, key, value, dropout_p=0.1, causal=True).view(x.size(0), x.size(1), self.number_of_heads * self.head_size)
-
+            output = self.flash_attention(x)
             return output
         else:
             self_attention_outputs = [self_attention(x, mask) for self_attention in self.self_attentions]
