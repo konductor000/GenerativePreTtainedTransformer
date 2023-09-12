@@ -89,11 +89,7 @@ class BookGenerator:
         return all_samples
     
     def skip_books(self, num_skip):
-<<<<<<< HEAD
         for i in range(num_skip*10):
-=======
-        for i in range(num_skip):
->>>>>>> 1eadfddd8bf1d7eb2f72dedb6dc0ad98908c0832
             next(self.dataset)
 
 
