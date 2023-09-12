@@ -1,0 +1,84 @@
+
+cuda
+Found cached dataset wikitext (C:/Users/skoro/.cache/huggingface/datasets/wikitext/wikitext-2-raw-v1/1.0.0/a241db52902eaf2c6aa732210bead40c090019a499ceb13bcbfa3f8ab646a126)
+Loading cached processed dataset at C:\Users\skoro\.cache\huggingface\datasets\wikitext\wikitext-2-raw-v1\1.0.0\a241db52902eaf2c6aa732210bead40c090019a499ceb13bcbfa3f8ab646a126\cache-ce510edb20811070.arrow
+Loading cached processed dataset at C:\Users\skoro\.cache\huggingface\datasets\wikitext\wikitext-2-raw-v1\1.0.0\a241db52902eaf2c6aa732210bead40c090019a499ceb13bcbfa3f8ab646a126\cache-ee625925d7e3d1b1.arrow
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+torch.Size([8, 465, 30522])
+torch.Size([8, 465])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Training Progress:   3%|▊                          | 127/4500 [03:59<2:17:41,  1.89s/it]

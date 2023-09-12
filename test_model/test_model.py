@@ -1,7 +1,10 @@
 import torch
 import evaluate
 import spacy
+<<<<<<< HEAD
 from time import time
+=======
+>>>>>>> 1eadfddd8bf1d7eb2f72dedb6dc0ad98908c0832
 
 
 class TestModel:
@@ -57,7 +60,10 @@ class TestModel:
         self.metrics['rouge2'] += rouge2
         self.metrics['rougeL'] += rougeL
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 1eadfddd8bf1d7eb2f72dedb6dc0ad98908c0832
     def test_model(self, model, test_dataloader):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -69,8 +75,12 @@ class TestModel:
             attention_mask = batch['attention_mask'].to(device)
 
             with torch.no_grad():
+<<<<<<< HEAD
                 with torch.autocast(device_type='cuda', dtype=torch.float16):
                     model_output, target = model(input_ids, attention_mask)
+=======
+                model_output, target = model(input_ids, attention_mask)
+>>>>>>> 1eadfddd8bf1d7eb2f72dedb6dc0ad98908c0832
 
             self.compute_metrics(model_output, target, attention_mask)
 
@@ -90,8 +100,12 @@ class TestModel:
             beam_width = 4
 
             with torch.no_grad():
+<<<<<<< HEAD
                 with torch.autocast(device_type='cuda', dtype=torch.float16):
                     output = model.predict_next(text, tokenizer, num_generate, beam_width).split()[-num_generate:]
+=======
+                output = model.predict_next(text, tokenizer, num_generate, beam_width).split()[-num_generate:]
+>>>>>>> 1eadfddd8bf1d7eb2f72dedb6dc0ad98908c0832
             output = ' '.join(output)
             
             sentence_doc = self.nlp(output)
