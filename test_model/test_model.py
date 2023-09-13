@@ -45,13 +45,11 @@ class TestModel:
 
         rouge = self.rouge_metric.compute(predictions=predicted_text, references=true_text)
 
-        loss = self.loss_function(predicted.transpose(1, 2), true_labels)
         bleu = self.bleu_metric.compute(predictions=predicted_text, references=true_text)['bleu']
         rouge1 = rouge['rouge1']
         rouge2 = rouge['rouge2']
         rougeL = rouge['rougeL']
 
-        self.metrics['loss'] += float(loss)
         self.metrics['bleu'] += bleu
         self.metrics['rouge1'] += rouge1
         self.metrics['rouge2'] += rouge2
@@ -71,7 +69,9 @@ class TestModel:
             with torch.no_grad():
                 with torch.autocast(device_type='cuda', dtype=torch.float16):
                     model_output, target = model(input_ids, attention_mask)
-
+                    loss = self.loss_function(model_output.transpose(1, 2), target)
+                    self.metrics['loss'] += float(loss)
+                    
             self.compute_metrics(model_output, target, attention_mask)
 
         for metric in self.metrics:

@@ -69,61 +69,32 @@ class BookGenerator:
 
         book_parts = split_book_into_parts(books, self.max_sequence_length)
         book_dataset = BookDataset(book_parts, self.tokenizer, self.max_sequence_length)
-        dataloader = DataLoader(book_dataset, batch_size=self.batch_size)
+        dataloader = DataLoader(book_dataset, batch_size=self.batch_size, num_workers=16)
 
         return dataloader
-    
-    def select_test(self, num_books):
-        seed = 42
-        random.seed(seed)
-        all_samples = []
-
-        for i in range(num_books):
-            dataloader = self.next_book(1)
-            number = random.randint(0, len(dataloader)-1)
-            for idx, batch in enumerate(dataloader):
-                if idx == number:
-                    all_samples.append(batch)
-                    break
-
-        return all_samples
     
     def skip_books(self, num_skip):
         for i in range(num_skip*10):
             next(self.dataset)
 
 
-"""
-________________________________________________________________________
-create dataloader wikitext test and train
-"""
+def create_test(max_sequence_length, batch_size, tokenizer):
+    data = load_dataset('monology/pile', split='test', streaming=True)
+    
+    texts = []
+    cnt = 256
+    for i in data:
+        if len(i['text'].split()) < 128:
+            continue
+        if cnt == 0:
+            break
+        cnt -= 1
+        texts.append(i['text'])
 
+    test_dataset = BookDataset(texts, tokenizer, max_sequence_length)
+    dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=16)
 
-def wikitext_dataloader(batch_size, max_sequence_length, tokenizer,
-                       train_size=36000, test_size=2000):
-    # Load the dataset from Hugging Face's datasets library
-    dataset = load_dataset('wikitext', 'wikitext-103-raw-v1')
-
-    train_dataset, test_dataset = dataset['train']. \
-        select(range(train_size)), dataset['test'].select(range(test_size))
-
-    # Tokenize the dataset
-    def tokenize_function(examples):
-        return tokenizer(examples['text'], padding=True, truncation=True,
-                          max_length=max_sequence_length)
-
-    tokenized_train_dataset = train_dataset.map(tokenize_function, batched=True)
-    tokenized_test_dataset = test_dataset.map(tokenize_function, batched=True)
-
-    # Convert the dataset to PyTorch tensors
-    tokenized_train_dataset.set_format('torch', columns=['input_ids', 'attention_mask'])
-    tokenized_test_dataset.set_format('torch', columns=['input_ids', 'attention_mask'])
-
-    # Create the data loader
-    train_dataloader = DataLoader(tokenized_train_dataset, batch_size=batch_size)
-    test_dataloader = DataLoader(tokenized_test_dataset, batch_size=batch_size)
-
-    return train_dataloader, test_dataloader
+    return dataloader
 
 
 """

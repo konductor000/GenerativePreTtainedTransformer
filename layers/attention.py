@@ -1,7 +1,9 @@
 import torch
-from flash_attn import flash_attn_qkvpacked_func, flash_attn_func
-from flash_attn.modules.mha import MHA
-
+try:
+    from flash_attn import flash_attn_qkvpacked_func, flash_attn_func
+    from flash_attn.modules.mha import MHA
+except:
+    pass
 
 class MaskedSelfAttention(torch.nn.Module):
     def __init__(self, embedding_size, head_size):
