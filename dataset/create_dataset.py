@@ -2,7 +2,6 @@ import torch
 import datasets
 import re
 from datasets import load_dataset
-from transformers import BertTokenizer
 from torch.utils.data import DataLoader, Dataset, random_split
 import random
 import pandas as pd
@@ -78,18 +77,18 @@ class BookGenerator:
             next(self.dataset)
 
 
-def create_test(max_sequence_length, batch_size, tokenizer):
-    data = load_dataset('monology/pile', split='test', streaming=True)
+def create_test(max_sequence_length, batch_size, tokenizer, dataset_size=1024):
+    data = load_dataset('monology/pile-uncopyrighted', split='test', streaming=True)
     
     texts = []
-    cnt = 256
-    for i in data:
-        if len(i['text'].split()) < 128:
+    cnt = dataset_size
+    for datapoint in data:
+        if len(datapoint['text'].split()) < 128:
             continue
         if cnt == 0:
             break
         cnt -= 1
-        texts.append(i['text'])
+        texts.append(datapoint['text'])
 
     test_dataset = BookDataset(texts, tokenizer, max_sequence_length)
     dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=16)
