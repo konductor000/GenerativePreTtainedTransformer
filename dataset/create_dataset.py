@@ -5,6 +5,8 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader, Dataset, random_split
 import random
 import pandas as pd
+from time import time
+from transformers import BertTokenizer, AutoTokenizer
 
 
 """
@@ -24,26 +26,26 @@ def split_book_into_parts(books, max_sequence_length):
             if len(words) >= max_sequence_length:
                 parts.append(" ".join(list(words)))
                 continue
-            if len(current_part) + len(words) <= max_sequence_length:
-                current_part += list(words)
-            else:
+            current_part += list(words)
+            if len(current_part) >= max_sequence_length:
                 parts.append(" ".join(current_part))
                 current_part = list(words)
 
         if len(current_part):
             parts.append(" ".join(current_part))
-    
+
     return parts
 
 
 class BookDataset(Dataset):
     def __init__(self, book_parts, tokenizer, max_length):
-        self.encodings = tokenizer(book_parts, padding=True, truncation=True,
+        self.encodings = tokenizer(book_parts, truncation=True, padding=True,
                                     max_length=max_length, return_tensors='pt')
-    
+
+
     def __len__(self):
         return len(self.encodings.input_ids)
-    
+
     def __getitem__(self, idx):
         return {
             'input_ids': self.encodings.input_ids[idx],
@@ -52,7 +54,8 @@ class BookDataset(Dataset):
 
 
 class BookGenerator:
-    def __init__(self, max_sequence_length, batch_size, tokenizer):
+    def __init__(self, max_sequence_length, batch_size, tokenizer, num_workers):
+        self.num_workers = num_workers
         self.max_sequence_length = max_sequence_length
         self.batch_size = batch_size
         self.tokenizer = tokenizer
@@ -68,26 +71,22 @@ class BookGenerator:
 
         book_parts = split_book_into_parts(books, self.max_sequence_length)
         book_dataset = BookDataset(book_parts, self.tokenizer, self.max_sequence_length)
-        dataloader = DataLoader(book_dataset, batch_size=self.batch_size, num_workers=16)
+        dataloader = DataLoader(book_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
         return dataloader
-    
-    def skip_books(self, num_skip):
-        for i in range(num_skip*10):
-            next(self.dataset)
 
 
 def create_test(max_sequence_length, batch_size, tokenizer, dataset_size=1024):
     data = load_dataset('monology/pile-uncopyrighted', split='test', streaming=True)
     
     texts = []
-    cnt = dataset_size
-    for datapoint in data:
+
+    for cnt, datapoint in enumerate(data):
+        if cnt == dataset_size:
+            break
         if len(datapoint['text'].split()) < 128:
             continue
-        if cnt == 0:
-            break
-        cnt -= 1
+
         texts.append(datapoint['text'])
 
     test_dataset = BookDataset(texts, tokenizer, max_sequence_length)
@@ -100,6 +99,7 @@ def create_test(max_sequence_length, batch_size, tokenizer, dataset_size=1024):
 ________________________________________________________________________
 create dataloader for testing
 """
+
 
 def create_test_dataset(path):
     data = pd.read_csv(path)

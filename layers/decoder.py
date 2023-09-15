@@ -5,7 +5,7 @@ from .feed_forward import FeedForward
 
 class DecoderLayer(torch.nn.Module):
     def __init__(self, embedding_size, number_of_heads,
-            extention_factor, additional_feed_forward_layers, dropout_rate, use_flash_att=False):
+            extention_factor, dropout_rate, use_flash_att=False):
         super().__init__()
 
         self.embedding_size = embedding_size
@@ -15,7 +15,7 @@ class DecoderLayer(torch.nn.Module):
 
         self.multi_headed_self_attention = MaskedMultiHeadedSelfAttention(embedding_size,
                                         number_of_heads, use_flash_att=self.use_flash_att)
-        self.feed_forward = FeedForward(embedding_size, extention_factor, additional_feed_forward_layers)
+        self.feed_forward = FeedForward(embedding_size, extention_factor)
         self.dropout = torch.nn.Dropout(dropout_rate)
 
         self.layer_normalization_1 = torch.nn.LayerNorm(embedding_size)
@@ -36,11 +36,11 @@ class DecoderLayer(torch.nn.Module):
 
 class DecoderStack(torch.nn.Module):
     def __init__(self, embedding_size, number_of_layers, number_of_heads,
-            extention_factor, additional_feed_forward_layers, dropout_rate, use_flash_att=False):
+            extention_factor, dropout_rate, use_flash_att=False):
         super().__init__()
 
         self.encoder_layers = torch.nn.ModuleList(
-            [DecoderLayer(embedding_size, number_of_heads, extention_factor, additional_feed_forward_layers,
+            [DecoderLayer(embedding_size, number_of_heads, extention_factor,
                            dropout_rate, use_flash_att=use_flash_att)
               for _ in range(number_of_layers)])
 

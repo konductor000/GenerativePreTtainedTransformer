@@ -13,7 +13,6 @@ class Transformer(torch.nn.Module):
             number_of_layers=6,
             number_of_heads=4,
             extention_factor=4,
-            additional_feed_forward_layers=0,
             dropout_rate=0.1,
             use_flash_att=False,
     ):
@@ -29,7 +28,6 @@ class Transformer(torch.nn.Module):
             number_of_layers=number_of_layers,
             number_of_heads=number_of_heads,
             extention_factor=extention_factor,
-            additional_feed_forward_layers=additional_feed_forward_layers,
             dropout_rate=dropout_rate,
             use_flash_att=use_flash_att,
         )
