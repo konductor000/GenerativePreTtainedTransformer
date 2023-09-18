@@ -75,6 +75,10 @@ class BookGenerator:
 
         return dataloader
 
+    def skip_books(self, num_skip):
+        for i in range(num_skip*10):
+            next(self.dataset)
+
 
 def create_test(max_sequence_length, batch_size, tokenizer, dataset_size=1024):
     data = load_dataset('monology/pile-uncopyrighted', split='test', streaming=True)

@@ -14,6 +14,5 @@ class FeedForward(torch.nn.Module):
 
     def forward(self, x):
         x = torch.relu(self.linear_1(x))
-        x = self.additional_feed_forward_layers(x)
 
         return self.linear_last(x)
