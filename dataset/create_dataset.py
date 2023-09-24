@@ -15,29 +15,7 @@ create generator with dataloaders with books
 """
 
 
-def split_book_into_parts(books, max_sequence_length):
-    parts = []
-    for book_text in books:
-        sentences = re.split(r'(?<=[.!?]) +', book_text)
-        current_part = []
-
-        for sentence in sentences:
-            words = sentence.split()
-            if len(words) >= max_sequence_length:
-                parts.append(" ".join(list(words)))
-                continue
-            current_part += list(words)
-            if len(current_part) >= max_sequence_length:
-                parts.append(" ".join(current_part))
-                current_part = list(words)
-
-        if len(current_part):
-            parts.append(" ".join(current_part))
-
-    return parts
-
-
-class BookDataset(Dataset):
+class SimpleDataset(Dataset):
     def __init__(self, book_parts, tokenizer, max_length):
         self.encodings = tokenizer(book_parts, truncation=True, padding=True,
                                     max_length=max_length, return_tensors='pt')
@@ -53,50 +31,60 @@ class BookDataset(Dataset):
         }
 
 
-class BookGenerator:
-    def __init__(self, max_sequence_length, batch_size, tokenizer, num_workers):
+class PileGenerator:
+    def __init__(self, max_sequence_length, batch_size, tokenizer, 
+                 num_workers, test_size=4096, num_skip=0):
         self.num_workers = num_workers
         self.max_sequence_length = max_sequence_length
         self.batch_size = batch_size
         self.tokenizer = tokenizer
 
-        self.dataset = iter(datasets.load_dataset("togethercomputer/RedPajama-Data-1T",
-            "book", split="train", streaming=True))
+        self.dataset = iter(datasets.load_dataset("stanford-crfm/DSIR-filtered-pile-50M",
+                                                   split="train", streaming=True))
+        self.test_dataloader =  self.next_loader(test_size)
+        self.skip_texts(num_skip)
 
-    def next_book(self, num_books):
-        books = []
-        for i in range(num_books):
-            book = next(self.dataset)['text']
-            books.append(book)
+    def next_loader(self, num_texts):
+        texts = []
+        for i in range(num_texts):
+            book = next(self.dataset)['contents']
+            texts.append(book)
 
-        book_parts = split_book_into_parts(books, self.max_sequence_length)
-        book_dataset = BookDataset(book_parts, self.tokenizer, self.max_sequence_length)
+        book_dataset = SimpleDataset(texts, self.tokenizer, self.max_sequence_length)
         dataloader = DataLoader(book_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
         return dataloader
 
-    def skip_books(self, num_skip):
-        for i in range(num_skip*10):
+    def skip_texts(self, num_skip):
+        for i in range(num_skip):
             next(self.dataset)
 
 
-def create_test(max_sequence_length, batch_size, tokenizer, dataset_size=1024):
-    data = load_dataset('monology/pile-uncopyrighted', split='test', streaming=True)
-    
-    texts = []
+class StoriesGenerator:
+    def __init__(self, max_sequence_length, batch_size, tokenizer, 
+                 num_workers):
+        self.num_workers = num_workers
+        self.max_sequence_length = max_sequence_length
+        self.batch_size = batch_size
+        self.tokenizer = tokenizer
 
-    for cnt, datapoint in enumerate(data):
-        if cnt == dataset_size:
-            break
-        if len(datapoint['text'].split()) < 128:
-            continue
+        self.dataset = iter(datasets.load_dataset("roneneldan/TinyStories",
+                                                   split="train", streaming=True))
+        
+        test_dataset =  datasets.load_dataset("roneneldan/TinyStories", split="test")
+        test_dataset = SimpleDataset(test_dataset, self.tokenizer, self.max_sequence_length)
+        self.test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
-        texts.append(datapoint['text'])
+    def next_loader(self, num_texts):
+        texts = []
+        for i in range(num_texts):
+            book = next(self.dataset)['contents']
+            texts.append(book)
 
-    test_dataset = BookDataset(texts, tokenizer, max_sequence_length)
-    dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=16)
+        dataset = SimpleDataset(texts, self.tokenizer, self.max_sequence_length)
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
-    return dataloader
+        return dataloader
 
 
 """
