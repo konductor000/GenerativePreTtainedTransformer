@@ -62,7 +62,7 @@ class PileGenerator:
 
 class StoriesGenerator:
     def __init__(self, max_sequence_length, batch_size, tokenizer, 
-                 num_workers):
+                 num_workers, test_size):
         self.num_workers = num_workers
         self.max_sequence_length = max_sequence_length
         self.batch_size = batch_size
@@ -71,14 +71,16 @@ class StoriesGenerator:
         self.dataset = iter(datasets.load_dataset("roneneldan/TinyStories",
                                                    split="train", streaming=True))
         
-        test_dataset =  datasets.load_dataset("roneneldan/TinyStories", split="test")
-        test_dataset = SimpleDataset(test_dataset, self.tokenizer, self.max_sequence_length)
-        self.test_dataloader = DataLoader(test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+        test_dataset =  iter(datasets.load_dataset("roneneldan/TinyStories", 
+                                              split="validation", streaming=True))
+        
+        self.test_dataloader = self.next_loader(test_size, test_dataset)
 
-    def next_loader(self, num_texts):
+    def next_loader(self, num_texts, dataset=None):
+        dataset = dataset if dataset else self.dataset
         texts = []
         for i in range(num_texts):
-            book = next(self.dataset)['contents']
+            book = next(dataset)['text']
             texts.append(book)
 
         dataset = SimpleDataset(texts, self.tokenizer, self.max_sequence_length)
