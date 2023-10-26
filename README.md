@@ -43,7 +43,7 @@ Trhis model is a tiny model trained on a high quality synthetic [dataset](https:
 - Batch size: 178
 - Number of trainable parameters: 24M
 ### Large model
-The current model is a large model trained on a filtered pile [dataset](https://huggingface.co/datasets/stanford-crfm/DSIR-filtered-pile-50M) consisting of high quality sequences filtered using DSIR with target datasets Wikipedia, books. The model was trained on 7B tokens on RTX 4090 GPU (around 40 hours). The test loss reached 1.15 on the CrossEntropyLoss.
+The current model is a large model trained on a filtered pile [dataset](https://huggingface.co/datasets/stanford-crfm/DSIR-filtered-pile-50M) consisting of high quality sequences filtered using DSIR with target datasets Wikipedia, books. The model was trained on 7B tokens on RTX 4090 GPU (around 40 hours). The test loss reached 2 on the CrossEntropyLoss.
 
 #### Model Details
 - Embedding size: 1024
